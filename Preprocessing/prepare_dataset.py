@@ -2,13 +2,6 @@
 Function for downloading, cleaning and preparing a dataset
 """
 
-"""
-1. Data needs start and end tokens to signal the start and end of a sentence
-2. Special characters need to be removed
-3. A vocabulary with word indexing as the models outputs are numerical not strings
-4. Sentence padding
-"""
-
 import os
 import re
 import io
@@ -18,10 +11,15 @@ import unicodedata
 import tensorflow as tf
 
 from numpy import ndarray
-from tf.keras.preprocessing.text import Tokenizer
+from sklearn.model_selection import train_test_split
+from tensorflow.keras.preprocessing.text import Tokenizer
 
-BATCH_SIZE = 64
-NUM_EXAMPLES = 30000
+"""
+1. Data needs start and end tokens to signal the start and end of a sentence
+2. Special characters need to be removed
+3. A vocabulary with word indexing as the models outputs are numerical not strings
+4. Sentence padding
+"""
 
 
 def tokenize(texts: tuple) -> tuple[ndarray, Tokenizer]:
@@ -68,7 +66,19 @@ def preprocess_sentence(w: str) -> str:
     return w
 
 
-def get_dataset(filename: str) -> tuple[ndarray, ndarray, Tokenizer, Tokenizer]:
+def get_dataset(
+        filename: str,
+        num_examples: int,
+        buffer_size: int,
+        batch_size: int
+) -> tuple[
+    ndarray,
+    ndarray,
+    Tokenizer,
+    Tokenizer,
+    tuple,
+    tuple
+]:
     # Download and extract zip file - TF has datasets from http://www.manythings.org/anki/
     path_to_zip = tf.keras.utils.get_file(
         filename + '.zip',
@@ -83,7 +93,7 @@ def get_dataset(filename: str) -> tuple[ndarray, ndarray, Tokenizer, Tokenizer]:
     lines = io.open(path_to_file, encoding='UTF-8').read().strip().split('\n')
 
     # clean each sentence and split the sentence into input and output language
-    word_pairs = [[preprocess_sentence(w) for w in l.split('\t')] for l in lines[:NUM_EXAMPLES]]
+    word_pairs = [[preprocess_sentence(w) for w in l.split('\t')] for l in lines[:num_examples]]
 
     # Split input language and target language
     inp, tar = zip(*word_pairs)
@@ -92,13 +102,19 @@ def get_dataset(filename: str) -> tuple[ndarray, ndarray, Tokenizer, Tokenizer]:
     input_tensor, input_tokenizer = tokenize(inp)
     target_tensor, target_tokenizer = tokenize(tar)
 
-    return input_tensor, target_tensor, input_tokenizer, target_tokenizer
+    # Training and Test set split
+    input_tensor_train, input_tensor_test, target_tensor_train, target_tensor_test = train_test_split(
+        input_tensor,
+        target_tensor,
+        test_size=0.2
+    )
 
+    # Convert to TF Datasets and get validation set
+    train_dataset = tf.data.Dataset.from_tensor_slices((input_tensor_train, target_tensor_train))
+    train_dataset = train_dataset.shuffle(buffer_size).batch(batch_size, drop_remainder=True)
 
-def main():
-    # Datasets from http://www.manythings.org/anki/
-    get_dataset('fra-eng')
+    train_dataset = tf.data.Dataset.from_tensor_slices((input_tensor_test, target_tensor_test))
+    train_dataset = train_dataset.batch(batch_size, drop_remainder=True)
 
+    return train_dataset, train_dataset, input_tokenizer, target_tokenizer, inp, tar
 
-if __name__ == '__main__':
-    main()
