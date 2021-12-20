@@ -75,9 +75,7 @@ def get_dataset(
     ndarray,
     ndarray,
     Tokenizer,
-    Tokenizer,
-    tuple,
-    tuple
+    Tokenizer
 ]:
     # Download and extract zip file - TF has datasets from http://www.manythings.org/anki/
     path_to_zip = tf.keras.utils.get_file(
@@ -87,7 +85,7 @@ def get_dataset(
     )
 
     # Get file location
-    path_to_file = os.path.dirname(path_to_zip) + "/" + filename[0:3] + ".txt"
+    path_to_file = os.path.dirname(path_to_zip) + "/spa-eng/spa.txt"
 
     # Read file and split each line
     lines = io.open(path_to_file, encoding='UTF-8').read().strip().split('\n')
@@ -116,5 +114,5 @@ def get_dataset(
     test_dataset = tf.data.Dataset.from_tensor_slices((input_tensor_test, target_tensor_test))
     test_dataset = test_dataset.batch(batch_size, drop_remainder=True)
 
-    return train_dataset, test_dataset, input_tokenizer, target_tokenizer, inp, tar
+    return train_dataset, test_dataset, input_tokenizer, target_tokenizer
 
