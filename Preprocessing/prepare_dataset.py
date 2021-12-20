@@ -113,8 +113,8 @@ def get_dataset(
     train_dataset = tf.data.Dataset.from_tensor_slices((input_tensor_train, target_tensor_train))
     train_dataset = train_dataset.shuffle(buffer_size).batch(batch_size, drop_remainder=True)
 
-    train_dataset = tf.data.Dataset.from_tensor_slices((input_tensor_test, target_tensor_test))
-    train_dataset = train_dataset.batch(batch_size, drop_remainder=True)
+    test_dataset = tf.data.Dataset.from_tensor_slices((input_tensor_test, target_tensor_test))
+    test_dataset = test_dataset.batch(batch_size, drop_remainder=True)
 
-    return train_dataset, train_dataset, input_tokenizer, target_tokenizer, inp, tar
+    return train_dataset, test_dataset, input_tokenizer, target_tokenizer, inp, tar
 
